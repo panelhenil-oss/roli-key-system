@@ -1,0 +1,40 @@
+name: Rotate Key Every 6 Hours
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Svaka 6 sati
+  workflow_dispatch:  # Možeš i ručno pokrenuti
+
+jobs:
+  rotate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Generate new key
+        run: |
+          # Generiši random ključ
+          NEW_KEY="ROLI-$(openssl rand -hex 3 | tr '[:lower:]' '[:upper:]')"
+          CURRENT_TIME=$(date +%s)
+          EXPIRE_TIME=$((CURRENT_TIME + 21600))  # +6 sati
+          
+          # Napravi JSON
+          cat > key.json << EOF
+          {
+            "current_key": "$NEW_KEY",
+            "generated_at": $CURRENT_TIME,
+            "expires_at": $EXPIRE_TIME
+          }
+          EOF
+          
+          echo "Generated key: $NEW_KEY"
+          
+      - name: Commit and push
+        run: |
+          git config user.name "ROLI Key Bot"
+          git config user.email "bot@roli.com"
+          git add key.json
+          git commit -m "🔄 Auto-rotated key at $(date)"
+          git push
